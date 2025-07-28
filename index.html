@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ranks</title>
+  </head>
+  <body>
+    <input type="text" id="wcaId" />
+    <button onclick="addWCAId()">add WCA ID</button><br /><br />
+
+    <select id="event" name="event-list">
+      <option value="333">3x3</option>
+      <option value="222">2x2</option>
+      <option value="444">4x4</option>
+      <option value="555">5x5</option>
+      <option value="666">6x6</option>
+      <option value="777">7x7</option>
+      <option value="333bf">3bld</option>
+      <option value="333fm">fmc</option>
+      <option value="333oh">oh</option>
+      <option value="clock">clock</option>
+      <option value="minx">mega</option>
+      <option value="pyram">pyra</option>
+      <option value="skewb">skewb</option>
+      <option value="sq1">sq1</option>
+      <option value="444bf">4bld</option>
+      <option value="555bf">5bld</option>
+      <option value="333mbf">mbld</option>
+    </select>
+    <button onclick="displayRanks()">display ranks</button><br /><br />
+    <button onclick="clearPersons()">clear all</button>
+
+    <div id="rankDisplay"></div>
+
+    <script src="index.js"></script>
+  </body>
+</html>
