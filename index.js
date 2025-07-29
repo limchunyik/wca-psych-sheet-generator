@@ -377,11 +377,11 @@ function displayResults(results, selectedEvent) {
   console.log(results);
 }
 
-// Export rankings to image
+// export rankings to image
 async function exportToImage() {
   const rankDisplay = document.getElementById("rankDisplay");
 
-  // Check if there are rankings to export
+  // check if there are rankings to export
   if (
     !rankDisplay.innerHTML.trim() ||
     rankDisplay.innerHTML.includes("Loading")
@@ -396,7 +396,6 @@ async function exportToImage() {
   try {
     showNotification("Generating image...", "info");
 
-    // Get current event for the title
     const selectedEvent = document.getElementById("event").value;
     const eventNames = {
       333: "3x3",
@@ -418,7 +417,7 @@ async function exportToImage() {
       "333mbf": "MBLD",
     };
 
-    // Create export container with custom styling
+    // export container
     const exportContainer = document.createElement("div");
     exportContainer.innerHTML = `
       <div style="
@@ -461,7 +460,7 @@ async function exportToImage() {
       </div>
     `;
 
-    // Remove action buttons and columns
+    // remove action buttons and columns
     const removeButtons = exportContainer.querySelectorAll("button");
     removeButtons.forEach((button) => button.remove());
 
@@ -474,7 +473,7 @@ async function exportToImage() {
       if (cells.length >= 6) cells[5].remove();
     });
 
-    // Add to DOM temporarily
+    // add to DOM temporarily
     exportContainer.style.position = "absolute";
     exportContainer.style.left = "-9999px";
     exportContainer.style.top = "0";
@@ -491,7 +490,7 @@ async function exportToImage() {
 
     document.body.removeChild(exportContainer);
 
-    // Download
+    // download
     const link = document.createElement("a");
     link.download = `${eventNames[selectedEvent]}-rankings-${
       new Date().toISOString().split("T")[0]
