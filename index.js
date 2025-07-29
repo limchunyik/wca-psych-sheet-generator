@@ -1,5 +1,35 @@
 let persons = [];
 
+// load stored persons on page load
+function loadStoredPersons() {
+  const stored = localStorage.getItem("wcaPersons");
+  if (stored) {
+    persons = JSON.parse(stored);
+    console.log("Loaded stored persons:", persons);
+  }
+}
+
+// save persons to localStorage
+function savePersons() {
+  localStorage.setItem("wcaPersons", JSON.stringify(persons));
+}
+
+// remove individual competitors
+function removePerson(wcaId) {
+  persons = persons.filter((id) => id !== wcaId);
+  savePersons();
+  showNotification(`Removed ${wcaId}`, "info");
+
+  // refresh the display if it's currently showing
+  const rankDisplay = document.getElementById("rankDisplay");
+  if (
+    rankDisplay.innerHTML.trim() !== "" &&
+    !rankDisplay.innerHTML.includes("Loading")
+  ) {
+    displayRanks();
+  }
+}
+
 async function addWCAId() {
   try {
     const wcaId = document.getElementById("wcaId").value.toUpperCase();
@@ -13,11 +43,16 @@ async function addWCAId() {
 
     if (!persons.includes(wcaId)) {
       persons.push(wcaId);
+      savePersons(); // save to localStorage after adding
+      showNotification(`Added ${wcaId} successfully!`, "success");
+    } else {
+      showNotification(`${wcaId} already added!`, "info");
     }
 
     document.getElementById("wcaId").value = "";
   } catch (error) {
     console.log(error);
+    showNotification(error.message, "error");
     document.getElementById("wcaId").value = "";
   }
 }
@@ -25,6 +60,14 @@ async function addWCAId() {
 async function displayRanks() {
   const rankDisplay = document.getElementById("rankDisplay");
   const selectedEvent = document.getElementById("event").value;
+
+  // loading state
+  rankDisplay.innerHTML = `
+    <div class="p-8 text-center">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <p class="mt-2 text-gray-600">Loading rankings...</p>
+    </div>
+  `;
 
   try {
     let results = [];
@@ -53,120 +96,294 @@ async function displayRanks() {
       }
     }
 
+    // sorting logic with proper tiebreaking
     results.sort((a, b) => {
-      const timeA = a.average || a.single || Infinity;
-      const timeB = b.average || b.single || Infinity;
-      return timeA - timeB;
+      // for blindfolded events, always sort by single
+      const blindfoldedEvents = ["333bf", "444bf", "555bf"];
+
+      if (blindfoldedEvents.includes(selectedEvent)) {
+        const timeA = a.single || Infinity;
+        const timeB = b.single || Infinity;
+        return timeA - timeB;
+      } else {
+        // other events
+        const hasAverageA = a.average !== null;
+        const hasAverageB = b.average !== null;
+
+        // average > single
+        if (hasAverageA && !hasAverageB) return -1;
+        if (!hasAverageA && hasAverageB) return 1;
+
+        // single as tiebreaker
+        if (hasAverageA && hasAverageB) {
+          if (a.average === b.average) {
+            const singleA = a.single || Infinity;
+            const singleB = b.single || Infinity;
+            return singleA - singleB;
+          }
+          return a.average - b.average;
+        }
+
+        // neither has average, sort by single
+        const singleA = a.single || Infinity;
+        const singleB = b.single || Infinity;
+        return singleA - singleB;
+      }
     });
+
+    // get event name for display
+    const eventNames = {
+      333: "3x3",
+      222: "2x2",
+      444: "4x4",
+      555: "5x5",
+      666: "6x6",
+      777: "7x7",
+      "333bf": "3BLD",
+      "333fm": "FMC",
+      "333oh": "OH",
+      clock: "Clock",
+      minx: "Megaminx",
+      pyram: "Pyraminx",
+      skewb: "Skewb",
+      sq1: "Square-1",
+      "444bf": "4BLD",
+      "555bf": "5BLD",
+      "333mbf": "MBLD",
+    };
 
     let htmlContent = `
-      <h3>results for ${selectedEvent}</h3>
-      <table style="border-collapse: collapse; width: 100%; margin-top: 20px;">
-        <thead>
-          <tr style="background-color: #f2f2f2;">
-            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Rank</th>
-            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Name</th>
-            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">WCA ID</th>
-            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Single</th>
-            <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Average</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+        <h3 class="text-xl font-bold text-gray-800">Results for ${
+          eventNames[selectedEvent]}</h3>
+        <p class="text-sm text-gray-600 mt-1">Comparing ${
+          persons.length
+        } competitor${persons.length !== 1 ? "s" : ""}</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full">
+          <thead class="bg-gradient-to-r from-gray-100 to-gray-200">
+            <tr>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rank</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Name</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">WCA ID</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Single</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Average</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
     `;
 
-    results.forEach((person, index) => {
-      const formatTime = (time) => {
-        if (!time) return "";
-
-        // mbld logic
-        if (selectedEvent === "333mbf") {
-          // format: 0DDTTTTTMM
-          const timeStr = time.toString().padStart(10, "0");
-
-          // extract components
-          const DD = parseInt(timeStr.substring(1, 3));
-          const TTTTT = parseInt(timeStr.substring(3, 8));
-          const MM = parseInt(timeStr.substring(8, 10));
-
-          const difference = 99 - DD;
-          const missed = MM;
-          const solved = difference + missed;
-          const attempted = solved + missed;
-
-          // handle unknown time case
-          if (TTTTT === 99999) {
-            return `${solved}/${attempted} Unknown`;
-          }
-
-          // format time with hours if needed
-          const hours = Math.floor(TTTTT / 3600);
-          const minutes = Math.floor((TTTTT % 3600) / 60);
-          const seconds = TTTTT % 60;
-
-          if (hours > 0) {
-            return `${solved}/${attempted} ${hours}:${minutes
-              .toString()
-              .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-          } else {
-            return `${solved}/${attempted} ${minutes}:${seconds
-              .toString()
-              .padStart(2, "0")}`;
-          }
-        }
-
-        // convert centiseconds to time format
-        const totalSeconds = time / 100;
-
-        if (totalSeconds >= 3600) {
-          // format as HH:MM:SS.SS for times over 1 hour
-          const hours = Math.floor(totalSeconds / 3600);
-          const minutes = Math.floor((totalSeconds % 3600) / 60);
-          const seconds = (totalSeconds % 60).toFixed(2);
-          return `${hours}:${minutes
-            .toString()
-            .padStart(2, "0")}:${seconds.padStart(5, "0")}`;
-        } else if (totalSeconds >= 60) {
-          // format as MM:SS.SS for times over 1 minute
-          const minutes = Math.floor(totalSeconds / 60);
-          const seconds = (totalSeconds % 60).toFixed(2);
-          return `${minutes}:${seconds.padStart(5, "0")}`;
-        } else {
-          // format as SS.SS for times under 1 minute
-          return `${totalSeconds.toFixed(2)}`;
-        }
-      };
-
-      const singleTime = formatTime(person.single);
-      const averageTime = formatTime(person.average);
-
+    if (results.length === 0) {
       htmlContent += `
-        <tr style="background-color: ${index % 2 === 0 ? "#f9f9f9" : "white"};">
-          <td style="border: 1px solid #ddd; padding: 12px;">${index + 1}</td>
-          <td style="border: 1px solid #ddd; padding: 12px;"><strong>${
-            person.name
-          }</strong></td>
-          <td style="border: 1px solid #ddd; padding: 12px;">${
-            person.wcaId
-          }</td>
-          <td style="border: 1px solid #ddd; padding: 12px;">${singleTime}</td>
-          <td style="border: 1px solid #ddd; padding: 12px;">${averageTime}</td>
+        <tr>
+          <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+            No results found for this event. Try adding some WCA IDs first!
+          </td>
         </tr>
       `;
-    });
+    } else {
+      results.forEach((person, index) => {
+        const formatTime = (time) => {
+          if (!time) return "";
+
+          // FMC logic
+          if (selectedEvent === "333fm") {
+            return time.toString(); // FMC is stored as integer moves
+          }
+
+          // MBLD logic
+          if (selectedEvent === "333mbf") {
+            const timeStr = time.toString().padStart(10, "0");
+            const DD = parseInt(timeStr.substring(1, 3));
+            const TTTTT = parseInt(timeStr.substring(3, 8));
+            const MM = parseInt(timeStr.substring(8, 10));
+
+            const difference = 99 - DD;
+            const missed = MM;
+            const solved = difference + missed;
+            const attempted = solved + missed;
+
+            if (TTTTT === 99999) {
+              return `${solved}/${attempted} Unknown`;
+            }
+
+            const hours = Math.floor(TTTTT / 3600);
+            const minutes = Math.floor((TTTTT % 3600) / 60);
+            const seconds = TTTTT % 60;
+
+            if (hours > 0) {
+              return `${solved}/${attempted} ${hours}:${minutes
+                .toString()
+                .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+            } else {
+              return `${solved}/${attempted} ${minutes}:${seconds
+                .toString()
+                .padStart(2, "0")}`;
+            }
+          }
+
+          // other events (convert centiseconds to time format)
+          const totalSeconds = time / 100;
+
+          if (totalSeconds >= 3600) {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = (totalSeconds % 60).toFixed(2);
+            return `${hours}:${minutes
+              .toString()
+              .padStart(2, "0")}:${seconds.padStart(5, "0")}`;
+          } else if (totalSeconds >= 60) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = (totalSeconds % 60).toFixed(2);
+            return `${minutes}:${seconds.padStart(5, "0")}`;
+          } else {
+            return `${totalSeconds.toFixed(2)}`;
+          }
+        };
+
+        // formatting for FMC mean (4-digit integer to 2 decimal places)
+        const formatFMCAverage = (average) => {
+          if (!average) return "";
+          return (average / 100).toFixed(2);
+        };
+
+        const singleTime = formatTime(person.single);
+        const averageTime =
+          selectedEvent === "333fm"
+            ? formatFMCAverage(person.average)
+            : formatTime(person.average);
+
+        // medal colors for top 3
+        let rankStyle = "";
+        if (index === 0) rankStyle = "text-yellow-600 font-bold";
+        else if (index === 1) rankStyle = "text-gray-500 font-bold";
+        else if (index === 2) rankStyle = "text-amber-600 font-bold"; 
+
+        htmlContent += `
+          <tr class="hover:bg-blue-50 transition-colors duration-150 ${
+            index % 2 === 0 ? "bg-white" : "bg-gray-50"
+          }">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="text-lg font-bold ${rankStyle}">${index + 1}</span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="font-semibold text-gray-900">${person.name}</div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full">${
+                person.wcaId
+              }</span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="font-mono text-gray-900 ${
+                singleTime ? "bg-green-50 px-2 py-1 rounded" : ""
+              }">${singleTime || "-"}</span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <span class="font-mono text-gray-900 ${
+                averageTime ? "bg-blue-50 px-2 py-1 rounded" : ""
+              }">${averageTime || "-"}</span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <button 
+                onclick="removePerson('${person.wcaId}')" 
+                class="text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-1 rounded text-sm font-medium transition-colors duration-150"
+                title="Remove ${person.name}"
+              >
+                Remove
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+    }
 
     htmlContent += `
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     `;
 
     rankDisplay.innerHTML = htmlContent;
     console.log(results);
   } catch (error) {
     console.log(error);
+    rankDisplay.innerHTML = `
+      <div class="p-8 text-center">
+        <div class="text-red-500 text-xl mb-2">⚠️</div>
+        <p class="text-gray-600">Error loading rankings. Please try again.</p>
+      </div>
+    `;
   }
 }
 
+
 function clearPersons() {
   persons = [];
+  localStorage.removeItem("wcaPersons");
   document.getElementById("rankDisplay").innerHTML = "";
+  showNotification("Cleared all competitors!", "info");
+}
+
+// notification
+function showNotification(message, type = "info") {
+  const colors = {
+    success: "bg-green-100 text-green-800 border-green-200",
+    error: "bg-red-100 text-red-800 border-red-200",
+    info: "bg-blue-100 text-blue-800 border-blue-200",
+  };
+
+  const notification = document.createElement("div");
+  notification.className = `fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg border z-50 transform transition-all duration-300 ${colors[type]}`;
+  notification.textContent = message;
+
+  document.body.appendChild(notification);
+
+  // slide in animation
+  setTimeout(() => {
+    notification.style.transform = "translateX(0)";
+  }, 100);
+
+  // remove after 3 seconds
+  setTimeout(() => {
+    notification.style.transform = "translateX(100%)";
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }, 3000);
+}
+
+// load stored data when the page loads
+window.addEventListener("load", loadStoredPersons);
+
+
+
+
+function extractAndAddWCAIds() {
+  const rawText = document.getElementById("bulkTextInput").value;
+  const regex = /\b\d{4}[A-Z]{4}\d{2}\b/g;
+  const matches = rawText.match(regex) || [];
+
+  let added = 0;
+  let skipped = 0;
+
+  matches.forEach((id) => {
+    if (!persons.includes(id)) {
+      persons.push(id);
+      added++;
+    } else {
+      skipped++;
+    }
+  });
+
+  savePersons();
+  showNotification(
+    `Extracted ${added} new WCA ID${
+      added !== 1 ? "s" : ""
+    }. ${skipped} duplicate${skipped !== 1 ? "s" : ""} skipped.`,
+    "success"
+  );
+  document.getElementById("bulkTextInput").value = "";
 }
