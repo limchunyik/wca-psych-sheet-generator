@@ -2,6 +2,8 @@
 
 A simple tool for generating WCA-style psych sheets and event rankings using data from the unofficial WCA API.
 
+You can use this tool [here](https://limchunyik.github.io/wca-psych-sheet-generator/).
+
 ## Features
 
 - **WCA ID Lookup**: Input WCA IDs to display rankings across all events
