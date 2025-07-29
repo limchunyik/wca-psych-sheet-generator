@@ -6,6 +6,7 @@ A simple tool for generating WCA-style psych sheets and event rankings using dat
 
 - **WCA ID Lookup**: Input WCA IDs to display rankings across all events
 - **Text Extraction**: Automatically extract WCA IDs from any text block (like registration lists)
+- **Rankings Export**: Export generated psych sheet as an image
 
 ## Planned Features
 

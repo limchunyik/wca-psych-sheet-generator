@@ -377,6 +377,137 @@ function displayResults(results, selectedEvent) {
   console.log(results);
 }
 
+// Export rankings to image
+async function exportToImage() {
+  const rankDisplay = document.getElementById("rankDisplay");
+
+  // Check if there are rankings to export
+  if (
+    !rankDisplay.innerHTML.trim() ||
+    rankDisplay.innerHTML.includes("Loading")
+  ) {
+    showNotification(
+      "Please display rankings first before exporting!",
+      "error"
+    );
+    return;
+  }
+
+  try {
+    showNotification("Generating image...", "info");
+
+    // Get current event for the title
+    const selectedEvent = document.getElementById("event").value;
+    const eventNames = {
+      333: "3x3",
+      222: "2x2",
+      444: "4x4",
+      555: "5x5",
+      666: "6x6",
+      777: "7x7",
+      "333bf": "3BLD",
+      "333fm": "FMC",
+      "333oh": "OH",
+      clock: "Clock",
+      minx: "Megaminx",
+      pyram: "Pyraminx",
+      skewb: "Skewb",
+      sq1: "Square-1",
+      "444bf": "4BLD",
+      "555bf": "5BLD",
+      "333mbf": "MBLD",
+    };
+
+    // Create export container with custom styling
+    const exportContainer = document.createElement("div");
+    exportContainer.innerHTML = `
+      <div style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 40px;
+        font-family: system-ui, -apple-system, sans-serif;
+        max-width: 1400px;
+        margin: 0 auto;
+      ">
+        <div style="
+          background: white;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        ">
+          <div style="
+            background: linear-gradient(90deg, #1f2937 0%, #374151 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+          ">
+            <h1 style="
+              font-size: 2.5rem;
+              font-weight: bold;
+              margin: 0 0 10px 0;
+              letter-spacing: -0.025em;
+            ">${eventNames[selectedEvent]} Rankings</h1>
+            <p style="
+              font-size: 1.1rem;
+              opacity: 0.8;
+              margin: 0;
+            ">Generated on ${new Date().toLocaleDateString()} • ${
+      persons.length
+    } competitors</p>
+          </div>
+          <div style="padding: 0;">
+            ${rankDisplay.innerHTML}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Remove action buttons and columns
+    const removeButtons = exportContainer.querySelectorAll("button");
+    removeButtons.forEach((button) => button.remove());
+
+    const actionHeaders = exportContainer.querySelectorAll("th");
+    if (actionHeaders.length >= 6) actionHeaders[5].remove();
+
+    const rows = exportContainer.querySelectorAll("tbody tr");
+    rows.forEach((row) => {
+      const cells = row.querySelectorAll("td");
+      if (cells.length >= 6) cells[5].remove();
+    });
+
+    // Add to DOM temporarily
+    exportContainer.style.position = "absolute";
+    exportContainer.style.left = "-9999px";
+    exportContainer.style.top = "0";
+    document.body.appendChild(exportContainer);
+
+    const canvas = await html2canvas(exportContainer, {
+      backgroundColor: null,
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      scrollX: 0,
+      scrollY: 0,
+    });
+
+    document.body.removeChild(exportContainer);
+
+    // Download
+    const link = document.createElement("a");
+    link.download = `${eventNames[selectedEvent]}-rankings-${
+      new Date().toISOString().split("T")[0]
+    }.png`;
+    link.href = canvas.toDataURL("image/png");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showNotification("Image exported successfully!", "success");
+  } catch (error) {
+    console.error("Export error:", error);
+    showNotification("Failed to export image. Please try again.", "error");
+  }
+}
+
 function clearPersons() {
   persons = [];
   localStorage.removeItem("wcaPersons");

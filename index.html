@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>psych-sheet-generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   </head>
   <body
     class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-4 md:p-8"
@@ -91,12 +92,18 @@
               <option value="333mbf">MBLD</option>
             </select>
           </div>
-          <div class="flex gap-3">
+          <div class="flex gap-3 flex-wrap">
             <button
               onclick="displayRanks()"
               class="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-lg hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transform hover:scale-105 transition-all duration-200 shadow-md"
             >
               Display Rankings
+            </button>
+            <button
+              onclick="exportToImage()"
+              class="px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white font-semibold rounded-lg hover:from-orange-700 hover:to-orange-800 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transform hover:scale-105 transition-all duration-200 shadow-md"
+            >
+              Export Image
             </button>
             <button
               onclick="clearPersons()"
