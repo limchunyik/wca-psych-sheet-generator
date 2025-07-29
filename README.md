@@ -12,6 +12,7 @@ A simple tool for generating WCA-style psych sheets and event rankings using dat
 - Autocomplete and smart search suggestions for WCA IDs
 - Toggle between single and average sorting
 - Clickable names that redirect to WCA profiles
+- ALlow saving of competitors lists for future use
 
 ## Data Source
 
